@@ -1,0 +1,31 @@
+model_list:
+  # ---- Mac (M5 Max) 上的 DeepSeek-V4-Flash-0731 -----------------------------
+  - model_name: deepseek-v4-flash
+    litellm_params:
+      model: openai/deepseek-v4-flash        # openai/ 前缀 = 走 OpenAI 兼容协议
+      api_base: os.environ/DS4_API_BASE
+      api_key: os.environ/DS4_API_KEY
+      # 冷前缀 prefill 是几十秒级（Claude Code 那类 25k token 系统提示更久）。
+      # LiteLLM 默认超时会把请求误杀，必须调大。
+      timeout: 600
+      stream_timeout: 600
+      # Mac 端 --batched-session 2，网关层限到 2，让排队发生在这边而不是 ds4 里，
+      # 行为更可控（超出的请求在网关排队，而不是打过去干等）。
+      max_parallel_requests: 2
+
+  # ---- 本地已有的 qwen3.6 ----------------------------------------------------
+  - model_name: qwen3.6
+    litellm_params:
+      model: openai/qwen3.6
+      api_base: os.environ/QWEN_API_BASE
+      api_key: os.environ/QWEN_API_KEY
+      timeout: 300
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+litellm_settings:
+  # 上游返回的非标准字段不至于让请求整个失败
+  drop_params: true
+  # 请求/响应日志，排查用；不需要可以删
+  set_verbose: false
