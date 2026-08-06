@@ -10,10 +10,12 @@ PORT="${LITELLM_PORT:-4000}"
 ok=0; fail=0
 chk() { if [ "$1" = 0 ]; then echo "  ✅ $2"; ok=$((ok+1)); else echo "  ❌ $2"; fail=$((fail+1)); fi; }
 
-echo "[1/4] 到 Mac 的网络"
+echo "[1/4] 到上游主机的 TCP 连通性"
+# 不用 ping：容器里 ICMP 通常没权限，tailnet userspace 模式下也常不通，会误报。
 host=$(echo "$DS4_API_BASE" | sed -E 's|https?://([^:/]+).*|\1|')
-ping -c1 -W2 "$host" >/dev/null 2>&1
-chk $? "ping $host"
+dport=$(echo "$DS4_API_BASE" | sed -nE 's|https?://[^:/]+:([0-9]+).*|\1|p'); dport="${dport:-8000}"
+(exec 3<>"/dev/tcp/$host/$dport") 2>/dev/null; rc=$?; exec 3>&- 2>/dev/null; exec 3<&- 2>/dev/null
+chk $rc "tcp $host:$dport"
 
 echo "[2/4] ds4-server 端点"
 body=$(curl -fsS --max-time 5 "$DS4_API_BASE/models" 2>/dev/null)
@@ -29,7 +31,7 @@ t0=$(date +%s)
 out=$(curl -fsS --max-time 600 "$DS4_API_BASE/chat/completions" \
   -H 'content-type: application/json' \
   -H "authorization: Bearer $DS4_API_KEY" \
-  -d '{"model":"deepseek-v4-flash","max_tokens":20,"messages":[{"role":"user","content":"只回复两个字：正常"}]}' 2>/dev/null)
+  -d '{"model":"deepseek-v4-flash","max_tokens":30,"think":false,"messages":[{"role":"user","content":"只回复两个字：正常"}]}' 2>/dev/null)
 rc=$?; t1=$(date +%s)
 chk $rc "chat/completions  ($((t1-t0))s)"
 [ $rc = 0 ] && echo "$out" | python3 -c "
