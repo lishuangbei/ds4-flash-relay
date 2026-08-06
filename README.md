@@ -79,6 +79,7 @@ The second is worth the extra step: the exposure is a separate process you can s
 
 ## Notes
 
+- **Thinking mode is on by default.** ds4-server defaults to DeepSeek's thinking mode, and with a small `max_tokens` the reply you see is truncated reasoning. Pass `"think": false` in the request body for direct answers — verified to pass through this gateway config (`drop_params` does not strip it).
 - **KV cache is per-prefix.** Different applications with different system prompts don't share cached prefixes, so each pays its own cold start. ds4-server's `--kv-disk-dir` makes those prefixes survive restarts.
 - **Model naming.** `openai/<name>` in `litellm_params.model` selects the OpenAI-compatible protocol; the part after the slash is what gets sent upstream as the model id.
 
