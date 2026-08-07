@@ -9,11 +9,16 @@ cp .env.local.example .env.local && $EDITOR .env.local   # 填 LITELLM_MASTER_KE
 ./claude-ds4.sh                                          # 跟平时 claude 一样，参数透传
 ```
 
-`.claude/settings.json` 是同一套配置的声明式副本（模型钉死 + compact 阈值 + 网关地址，
-唯独不含密钥）——就算有人在这个目录里直接跑裸 `claude` 忘了走脚本，模型和阈值也是对的，
-只会因为缺 key 在鉴权处大声失败，而不是静默打到真 Anthropic API 上。
-注意旧版 Claude Code（约 v2.1.87 前后）有 settings.json env 块被忽略的已知 bug，
-所以启动脚本的 export 仍是权威路径，settings.json 是兜底。
+`.claude/settings.json` 只放**永不变化的量**：模型钉选（含 `model` 和全部 tier env）。
+这是刻意收窄的——新版 Claude Code 里 settings.json 的 env 块会**覆盖** shell 导出的
+同名变量（文件赢），所以任何可能通过 `.env.local` 调整的量（网关地址、compact 阈值）
+都不能出现在这里，否则覆盖会被静默顶掉。另外 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`
+这类应用级变量放 env 块对 Claude Code 自身无效（issue #63186，截至 v2.1.224 未修），
+只有启动脚本的 shell 导出可靠。
+
+注意 `.claude/` 是**项目级**配置，只对"在这个目录里启动"的会话生效。要让它作用于
+你的工作项目，把 `.claude/` 拷进各项目根目录；而启动脚本从任何目录跑都全量生效，
+是权威路径。
 
 ## 脚本做了什么
 
