@@ -26,11 +26,12 @@ cp .env.local.example .env.local && $EDITOR .env.local   # 填 LITELLM_MASTER_KE
 - `unset ANTHROPIC_API_KEY`，防止 shell 里残留的真 key 把请求劫去 Anthropic
 - 三个 model tier + subagent 全部钉死到 `deepseek-v4-flash`，不自动检测
   （`/v1/models` 的 `data[0]` 顺序无保证，自动选型会随机切到别的模型）
-- `CLAUDE_CODE_AUTO_COMPACT_WINDOW=90000`：Claude Code 对未知模型名默认假设
-  200K 上下文，不设阈值会一路推到本地模型的墙上（`exceed_context_size_error`）。
-  当前约定：ds4-server `--ctx 112640`（110K）+ 阈值 90000（缓冲约 22K）。
-  调服务端 ctx 时同步三处：`.env.local` 的 `DS4_COMPACT_WINDOW`、
-  `.claude/settings.json`、Mac 侧 `config.sh` 的 `CTX`。
+- `CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000`：Claude Code 对未知模型名默认假设
+  200K 上下文，不管会一路推到本地模型的墙上（`exceed_context_size_error`）。
+  这个变量直接重定义它眼中的总窗口（下限 100000，更低被静默夹回）；压缩在
+  窗口−33K（硬编码 buffer）= 67K 触发。当前约定：Claude 窗口 100K +
+  ds4-server `--ctx 112640`（110K）——服务端高出的 12.6K 用于吸收单轮突刺
+  和两边分词器的计数差异，不要把服务端降到和窗口相等。
 
 ## 密钥
 
