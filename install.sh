@@ -18,7 +18,7 @@ python3 -c 'import ensurepip' 2>/dev/null         || need="$need python3-venv"
 python3 -m pip --version >/dev/null 2>&1          || need="$need python3-pip"
 command -v curl >/dev/null                        || need="$need curl"
 if [ -n "$need" ]; then
-  [ -n "$APT" ] || { echo "缺:$need，且没有 apt-get/sudo —— 请手动安装后重跑" >&2; exit 1; }
+  [ -n "$APT" ] || { echo "缺:${need}，且没有 apt-get/sudo —— 请手动安装后重跑" >&2; exit 1; }
   $APT update
   $APT install -y $need ca-certificates
 fi
