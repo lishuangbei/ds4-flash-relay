@@ -10,9 +10,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GATEWAY="${DS4_GATEWAY:-http://172.17.0.2:4000}"
 KEY="${DS4_GATEWAY_KEY:?缺网关 key：在 $HERE/.env.local 写 DS4_GATEWAY_KEY=<LITELLM_MASTER_KEY>，或先 export}"
 MODEL="${DS4_MODEL:-deepseek-v4-flash}"
-# 必须低于 ds4-server 的 --ctx 25-30K（吸收单轮工具结果突刺 + 生成输出）。
-# 服务端 160K(163840) 时取 135000；调服务端 ctx 记得同步这里。
-COMPACT_WINDOW="${DS4_COMPACT_WINDOW:-135000}"
+# 必须明显低于 ds4-server 的 --ctx（缓冲吸收单轮工具结果突刺 + 生成输出）。
+# 服务端 110K(112640) 时取 90000（缓冲约 22K）。
+# 调服务端 ctx 时同步三处：这里(.env.local)、.claude/settings.json、Mac 的 config.sh。
+COMPACT_WINDOW="${DS4_COMPACT_WINDOW:-90000}"
 
 # 起手探活：直接验证 Claude Code 要用的 /v1/messages 端点本身。
 # 失败就带原因退出，不让 claude 起来再报一堆难懂的连接错。
