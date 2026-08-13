@@ -10,10 +10,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GATEWAY="${DS4_GATEWAY:-http://172.17.0.2:4000}"
 KEY="${DS4_GATEWAY_KEY:?缺网关 key：在 $HERE/.env.local 写 DS4_GATEWAY_KEY=<LITELLM_MASTER_KEY>，或先 export}"
 MODEL="${DS4_MODEL:-deepseek-v4-flash}"
-# 语义：重定义 Claude Code 眼中的总窗口（/context 显示的就是它）。
-# 下限 100000（更低会被静默夹回来）；压缩在 窗口−33K（硬编码 buffer）触发 → 67K。
-# 服务端 --ctx 必须比这里高 10K+（吸收突刺 + 两边分词器计数差异），当前 112640。
-COMPACT_WINDOW="${DS4_COMPACT_WINDOW:-100000}"
+# 窗口 200K + PCT 80 → 压缩在 (200K − 20K输出预留) × 80% = 144K 触发。
+# 服务端 --ctx 必须 ≥ 窗口 200K + 分词器差异余量（当前 Mac 侧 262144）。
+COMPACT_WINDOW="${DS4_COMPACT_WINDOW:-200000}"
+COMPACT_PCT="${DS4_COMPACT_PCT:-80}"
 
 # 起手探活：直接验证 Claude Code 要用的 /v1/messages 端点本身。
 # 失败就带原因退出，不让 claude 起来再报一堆难懂的连接错。
@@ -39,7 +39,8 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL"
 export CLAUDE_CODE_SUBAGENT_MODEL="$MODEL"
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-export CLAUDE_STREAM_IDLE_TIMEOUT_MS=900000
+export CLAUDE_STREAM_IDLE_TIMEOUT_MS=1200000
 export CLAUDE_CODE_AUTO_COMPACT_WINDOW="$COMPACT_WINDOW"
+export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="$COMPACT_PCT"
 
 exec claude --dangerously-skip-permissions "$@"

@@ -26,12 +26,13 @@ cp .env.local.example .env.local && $EDITOR .env.local   # 填 LITELLM_MASTER_KE
 - `unset ANTHROPIC_API_KEY`，防止 shell 里残留的真 key 把请求劫去 Anthropic
 - 三个 model tier + subagent 全部钉死到 `deepseek-v4-flash`，不自动检测
   （`/v1/models` 的 `data[0]` 顺序无保证，自动选型会随机切到别的模型）
-- `CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000`：Claude Code 对未知模型名默认假设
-  200K 上下文，不管会一路推到本地模型的墙上（`exceed_context_size_error`）。
-  这个变量直接重定义它眼中的总窗口（下限 100000，更低被静默夹回）；压缩在
-  窗口−33K（硬编码 buffer）= 67K 触发。当前约定：Claude 窗口 100K +
-  ds4-server `--ctx 112640`（110K）——服务端高出的 12.6K 用于吸收单轮突刺
-  和两边分词器的计数差异，不要把服务端降到和窗口相等。
+- 上下文约定（三个数字一体，改一个查三个）：
+  - `CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000`：Claude Code 眼中的总窗口
+  - `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80`：压缩触发 = (200K − 20K 输出预留) × 80% ≈ **144K**
+  - Mac 侧 ds4-server `--ctx 262144`（256K）：必须 ≥ 窗口 200K + 分词器计数差异
+    （DeepSeek 实际计数可比 Claude 估算高几个百分点），否则撞 `exceed_context_size_error`
+  - 压缩成本随触发点线性涨：144K 冷 prefill 独占 ~9 分钟、争抢 ~17 分钟，
+    所以 `CLAUDE_STREAM_IDLE_TIMEOUT_MS=1200000`（20 分钟）兜底
 
 ## 密钥
 
