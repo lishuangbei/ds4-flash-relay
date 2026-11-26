@@ -12,8 +12,11 @@ Nothing here is specific to DeepSeek — any OpenAI-compatible upstream works. T
 ## Setup
 
 ```bash
-./install.sh
+./install.sh              # latest LiteLLM from PyPI
+./install.sh 1.106.12     # or an exact version; also how you upgrade, downgrade or roll back
 ```
+
+Re-running `install.sh` only replaces the library in `.venv`. It prints the version it replaced and the command to go back to it; restart the gateway (stop it, then `./start.sh`) for the change to take effect. `LITELLM_VERSION=1.106.12 ./install.sh` does the same as the argument. The default takes whatever PyPI published most recently, which may be hours old, so pin a version when you want to know in advance what you are getting.
 
 ```bash
 cp .env.example .env && $EDITOR .env
@@ -82,7 +85,7 @@ The second is worth the extra step: the exposure is a separate process you can s
 - **Thinking mode is on by default.** ds4-server defaults to DeepSeek's thinking mode, and with a small `max_tokens` the reply you see is truncated reasoning. Pass `"think": false` in the request body for direct answers — verified to pass through this gateway config (`drop_params` does not strip it).
 - **KV cache is per-prefix.** Different applications with different system prompts don't share cached prefixes, so each pays its own cold start. ds4-server's `--kv-disk-dir` makes those prefixes survive restarts.
 - **Model naming.** `hosted_vllm/<name>` and `openai/<name>` in `litellm_params.model` both select the OpenAI-compatible protocol; the part after the slash is what gets sent upstream as the model id.
-- **Use `hosted_vllm/` for the DeepSeek route.** The TensorFold engine on the Spark puts streamed `usage` in the same chunk as `finish_reason` instead of a separate `choices: []` chunk. On the `openai/` path LiteLLM 1.97–1.99 discards that usage and reports its own token estimate, so `prompt_tokens_details.cached_tokens` never reaches the client and cache hits always read as 0. The `hosted_vllm/` path keeps the upstream usage and also forwards `reasoning_effort`. With it, `/v1/messages` is translated to the upstream's `/v1/chat/completions`; `/v1/responses` is still forwarded as is.
+- **Use `hosted_vllm/` for the DeepSeek route.** The TensorFold engine on the Spark puts streamed `usage` in the same chunk as `finish_reason` instead of a separate `choices: []` chunk. On the `openai/` path LiteLLM up to 1.100.x discards that usage and reports its own token estimate, so `prompt_tokens_details.cached_tokens` never reaches the client and cache hits always read as 0. LiteLLM 1.101.0 fixed that, but the `hosted_vllm/` path keeps the upstream usage and forwards `reasoning_effort` on old and new versions alike, so it stays the default and a rollback does not bring the problem back. With it, `/v1/messages` is translated to the upstream's `/v1/chat/completions`; `/v1/responses` is still forwarded as is.
 
 ## License
 

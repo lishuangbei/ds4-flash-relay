@@ -4,10 +4,11 @@ model_list:
     litellm_params:
       # 前缀用 hosted_vllm/，不要用 openai/。两者都走 OpenAI 兼容协议，区别在流式用量：
       # Spark 上的 TensorFold 引擎把 usage 放在带 finish_reason 的最后一块里，而不是单独的
-      # `choices: []` 块。LiteLLM 1.97–1.99 的 openai/ 路径遇到这种写法会丢掉上游 usage，
-      # 改用自己估算的 token 数，prompt_tokens_details.cached_tokens 随之消失，客户端
-      # （DS Harness 等）看到的缓存命中永远是 0。hosted_vllm/ 路径原样保留上游 usage，
-      # 同时 reasoning_effort 也能传到上游（openai/ 下会被 drop_params 丢掉）。
+      # `choices: []` 块。LiteLLM 1.100.x 及更早版本的 openai/ 路径遇到这种写法会丢掉上游
+      # usage，改用自己估算的 token 数，prompt_tokens_details.cached_tokens 随之消失，客户端
+      # （DS Harness 等）看到的缓存命中永远是 0；1.101.0 起上游已修。hosted_vllm/ 路径在
+      # 新旧版本上都原样保留上游 usage（实测 1.97.0、1.99.0、1.111.0），reasoning_effort 也都
+      # 能传到上游，所以升级后仍保留这个前缀：用 ./install.sh <版本> 回退到旧版时不会再丢。
       # 副作用：/v1/messages 改为翻译成上游的 /v1/chat/completions（原先是 /v1/responses）；
       # /v1/responses 仍然原样转给上游。
       model: hosted_vllm/deepseek-v4-flash
