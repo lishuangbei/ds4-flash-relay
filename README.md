@@ -81,7 +81,8 @@ The second is worth the extra step: the exposure is a separate process you can s
 
 - **Thinking mode is on by default.** ds4-server defaults to DeepSeek's thinking mode, and with a small `max_tokens` the reply you see is truncated reasoning. Pass `"think": false` in the request body for direct answers — verified to pass through this gateway config (`drop_params` does not strip it).
 - **KV cache is per-prefix.** Different applications with different system prompts don't share cached prefixes, so each pays its own cold start. ds4-server's `--kv-disk-dir` makes those prefixes survive restarts.
-- **Model naming.** `openai/<name>` in `litellm_params.model` selects the OpenAI-compatible protocol; the part after the slash is what gets sent upstream as the model id.
+- **Model naming.** `hosted_vllm/<name>` and `openai/<name>` in `litellm_params.model` both select the OpenAI-compatible protocol; the part after the slash is what gets sent upstream as the model id.
+- **Use `hosted_vllm/` for the DeepSeek route.** The TensorFold engine on the Spark puts streamed `usage` in the same chunk as `finish_reason` instead of a separate `choices: []` chunk. On the `openai/` path LiteLLM 1.97–1.99 discards that usage and reports its own token estimate, so `prompt_tokens_details.cached_tokens` never reaches the client and cache hits always read as 0. The `hosted_vllm/` path keeps the upstream usage and also forwards `reasoning_effort`. With it, `/v1/messages` is translated to the upstream's `/v1/chat/completions`; `/v1/responses` is still forwarded as is.
 
 ## License
 

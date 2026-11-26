@@ -2,7 +2,15 @@ model_list:
   # ---- Mac (M5 Max) 上的 DeepSeek-V4-Flash-0731 -----------------------------
   - model_name: deepseek-v4-flash
     litellm_params:
-      model: openai/deepseek-v4-flash        # openai/ 前缀 = 走 OpenAI 兼容协议
+      # 前缀用 hosted_vllm/，不要用 openai/。两者都走 OpenAI 兼容协议，区别在流式用量：
+      # Spark 上的 TensorFold 引擎把 usage 放在带 finish_reason 的最后一块里，而不是单独的
+      # `choices: []` 块。LiteLLM 1.97–1.99 的 openai/ 路径遇到这种写法会丢掉上游 usage，
+      # 改用自己估算的 token 数，prompt_tokens_details.cached_tokens 随之消失，客户端
+      # （DS Harness 等）看到的缓存命中永远是 0。hosted_vllm/ 路径原样保留上游 usage，
+      # 同时 reasoning_effort 也能传到上游（openai/ 下会被 drop_params 丢掉）。
+      # 副作用：/v1/messages 改为翻译成上游的 /v1/chat/completions（原先是 /v1/responses）；
+      # /v1/responses 仍然原样转给上游。
+      model: hosted_vllm/deepseek-v4-flash
       api_base: os.environ/DS4_API_BASE
       api_key: os.environ/DS4_API_KEY
       # 冷前缀 prefill 是几十秒级（Claude Code 那类 25k token 系统提示更久）。
